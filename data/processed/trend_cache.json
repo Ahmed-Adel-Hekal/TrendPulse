@@ -1,0 +1,458 @@
+{
+  "f38f2b1fe353bb0de2708eb12bdd6990a23a0be9e215d94555a6c734daf22c85": {
+    "ts": 1775453956,
+    "result": {
+      "top_trends": [
+        {
+          "topic": "CEO of America’s largest public hospital system says he’s ready to replace radiologists with AI",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/technology momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 71.2,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "AI is denying health care claims",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/technology momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 71.2,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "OpenAI's fall from grace as investors race to Anthropic",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Musician says AI company is cloning her music, filing claims against her",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Newsom signs executive order requiring AI companies to have safety, privacy guardrails",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/artificial momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 71.2,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "How A.I. Helped One Man (and His Brother) Build a $1.8 Billion Company - The New York Times",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage google_news momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 71.1,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Anthropic reportedly acquires medical AI startup Coefficient Bio for $400M+ - SiliconANGLE",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage google_news momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 71.1,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "The Real Reason OpenAI Shut Sora Down Is a Warning to Every AI Startup - Futurism",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage google_news momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 71.1,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "'Silent killers': How AI start-ups are trying to solve one of the retail industry's biggest problems - CNBC",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage google_news momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 71.1,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "These AI Whiz Kids Dropped Out of College and Got Investors to Pay Their Bills - wsj.com",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage google_news momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 71.1,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "YouTube chat logs reveal employees aimed for “viewer addiction” and scrapped safety tools",
+          "trend_strength": "medium",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/technology momentum",
+          "hook_style": "question",
+          "forecast": "future_trend",
+          "confidence_score": 44.6,
+          "confidence_level": "low"
+        },
+        {
+          "topic": "FBI Confirms Kash Patel Email Hack as US Offers $10M Reward for Hackers",
+          "trend_strength": "medium",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/technology momentum",
+          "hook_style": "question",
+          "forecast": "future_trend",
+          "confidence_score": 44.6,
+          "confidence_level": "low"
+        }
+      ],
+      "keywords": [
+        "startup",
+        "software",
+        "tech",
+        "business",
+        "data",
+        "you",
+        "com",
+        "funding",
+        "learning",
+        "trends",
+        "instagram",
+        "open"
+      ],
+      "confidence_summary": {
+        "average_score": 66.9,
+        "high_confidence_count": 0,
+        "medium_confidence_count": 10,
+        "low_confidence_count": 2,
+        "cacheable_for_hours": 24
+      },
+      "cache": {
+        "used": false,
+        "ttl_hours": 24
+      }
+    }
+  },
+  "fefb671298998204d6d131262224b1c3f71acf22f1de6a793ef15e1b61529a87": {
+    "ts": 1775454075,
+    "result": {
+      "top_trends": [
+        {
+          "topic": "YouTube chat logs reveal employees aimed for “viewer addiction” and scrapped safety tools",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/technology momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 71.2,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Vibe coding is now the focus of this subreddit",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/webdev momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 71.2,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "I built a library that lets you control web maps with hand gestures like Tom Cruise in Minority Report",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/webdev momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 71.2,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Show HN: A game where you build a GPU",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "OpenScreen is an open-source alternative to Screen Studio",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Microsoft hasn't had a coherent GUI strategy since Petzold",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Lisette a little language inspired by Rust that compiles to Go",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "LÖVE: 2D Game Framework for Lua",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Show HN: I built a tiny LLM to demystify how language models work",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Introduction to Computer Music (2009) [pdf]",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "After 5 years as CTO at two startups, I wrote down everything I got wrong (I will not promote)",
+          "trend_strength": "medium",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/startups momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "future_trend",
+          "confidence_score": 37.2,
+          "confidence_level": "low"
+        },
+        {
+          "topic": "If your goal is to get rich, DON’T found a tech startup - I will not promote",
+          "trend_strength": "medium",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/startups momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "future_trend",
+          "confidence_score": 37.2,
+          "confidence_level": "low"
+        }
+      ],
+      "keywords": [
+        "startup",
+        "software",
+        "tech",
+        "data",
+        "you",
+        "funding",
+        "trends",
+        "instagram",
+        "business",
+        "com",
+        "learning",
+        "open"
+      ],
+      "confidence_summary": {
+        "average_score": 66.0,
+        "high_confidence_count": 0,
+        "medium_confidence_count": 10,
+        "low_confidence_count": 2,
+        "cacheable_for_hours": 24
+      },
+      "cache": {
+        "used": false,
+        "ttl_hours": 24
+      }
+    }
+  },
+  "6be4a082e4458bdfb05393061c7f4a80bd183ea4f64f9f4f65f7ce9c1980f56b": {
+    "ts": 1775454287,
+    "result": {
+      "top_trends": [
+        {
+          "topic": "Vibe coding is now the focus of this subreddit",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/webdev momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 71.2,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "I built a real-time flight tracker with Rust, WebAssembly, and raw WebGL — no React, no Three.js, no frameworks",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/webdev momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 71.2,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Tell HN: Anthropic no longer allowing Claude Code subscriptions to use OpenClaw",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "I built a library that lets you control web maps with hand gestures like Tom Cruise in Minority Report",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/webdev momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 71.2,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "The ultimate irony Claude Code just leaked its own source code via a sourcemap on npm",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/webdev momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 71.2,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Show HN: A game where you build a GPU",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Gemma 4 on iPhone",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "OpenScreen is an open-source alternative to Screen Studio",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "XKCD adds theme switcher with novel options",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/webdev momentum",
+          "hook_style": "question",
+          "forecast": "viral",
+          "confidence_score": 71.2,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Microsoft hasn't had a coherent GUI strategy since Petzold",
+          "trend_strength": "high",
+          "content_format": "post",
+          "marketing_angle": "Leverage hackernews momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "viral",
+          "confidence_score": 72.0,
+          "confidence_level": "medium"
+        },
+        {
+          "topic": "Oracle fired up to 30,000 workers via email after a 95% profit surge. Tech companies are cutting almost 1,000 jobs/day",
+          "trend_strength": "medium",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/technology momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "future_trend",
+          "confidence_score": 38.1,
+          "confidence_level": "low"
+        },
+        {
+          "topic": "Maine Is About to Become the First State to Ban New Data Centers",
+          "trend_strength": "medium",
+          "content_format": "post",
+          "marketing_angle": "Leverage reddit/r/technology momentum",
+          "hook_style": "shocking statistic",
+          "forecast": "future_trend",
+          "confidence_score": 38.1,
+          "confidence_level": "low"
+        }
+      ],
+      "keywords": [
+        "eyeliner",
+        "startup",
+        "com",
+        "software",
+        "you",
+        "best",
+        "tech",
+        "new",
+        "business",
+        "trends",
+        "data",
+        "funding"
+      ],
+      "confidence_summary": {
+        "average_score": 66.0,
+        "high_confidence_count": 0,
+        "medium_confidence_count": 10,
+        "low_confidence_count": 2,
+        "cacheable_for_hours": 24
+      },
+      "cache": {
+        "used": false,
+        "ttl_hours": 24
+      }
+    }
+  }
+}
