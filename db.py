@@ -16,7 +16,7 @@ DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
 
 import logging
-logger = logging.getLogger("SignalMind.db")
+logger = logging.getLogger("TrendPulse.db")
 
 # ── Thread-local connection cache ──────────────────────────────────────────────
 _local = threading.local()

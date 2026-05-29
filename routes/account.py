@@ -251,7 +251,7 @@ async def pricing_page(request: Request):
     </div>
     <script>
     function selectPlan(plan){{
-      toast('Stripe billing coming soon — contact us at support@signalmind.ai','info');
+      toast('Stripe billing coming soon — contact us at support@trendpulse.ai','info');
     }}
     </script>"""
     return HTMLResponse(ui._page(content, user, _t(lang,"pricing.title"), "pricing", lang))

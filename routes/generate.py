@@ -248,7 +248,12 @@ async def generate_post(request: Request, background_tasks: BackgroundTasks,
     comp_urls = [u.strip() for u in competitor_urls.splitlines() if u.strip().startswith("http")]
 
     import os
-    resolved_llm_key   = llm_api_key.strip() or settings.get("gemini_key", "") or os.getenv("GEMINI_API_KEY", "")
+    llm_provider = settings.get("llm_provider", "google")
+    if llm_provider == "openrouter":
+        default_llm_key = settings.get("openrouter_key", "") or os.getenv("OPENROUTER_API_KEY", "")
+    else:
+        default_llm_key = settings.get("gemini_key", "") or os.getenv("GEMINI_API_KEY", "")
+    resolved_llm_key   = llm_api_key.strip() or default_llm_key
     resolved_img_key   = settings.get("gemini_key", "")  or os.getenv("GEMINI_API_KEY", "")
     resolved_video_key = settings.get("aiml_key", "")    or os.getenv("AIML_API_KEY", "")
 
@@ -265,7 +270,7 @@ async def generate_post(request: Request, background_tasks: BackgroundTasks,
         "product_features": features,
         "competitor_urls":  comp_urls,
         "brand_profile":    merged_bp,
-        "llm_provider":     settings.get("llm_provider", "google"),
+        "llm_provider":     llm_provider,
         "llm_model":        settings.get("llm_model", "gemini-2.5-flash"),
         "image_model":      settings.get("image_model", "gemini-3.1-flash-image-preview"),
         "video_model":      settings.get("video_model", "google/veo-3.1-i2v"),

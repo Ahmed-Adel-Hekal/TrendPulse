@@ -165,7 +165,7 @@ def _admin_page(content: str, user: dict, title: str = "Admin", active: str = "o
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="logo-icon">🛡</div>
-      <span class="logo-text">SignalMind</span>
+      <span class="logo-text">TrendPulse</span>
       <span class="logo-badge">ADMIN</span>
     </div>
     <nav class="sidebar-nav">

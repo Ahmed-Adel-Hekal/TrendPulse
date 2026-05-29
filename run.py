@@ -1,9 +1,9 @@
-"""run.py — Development / production entry point for SignalMind."""
+"""run.py — Development / production entry point for TrendPulse."""
 import os
 import sys
 import logging
 
-logger = logging.getLogger("SignalMind.startup")
+logger = logging.getLogger("TrendPulse.startup")
 
 
 def check_environment():
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     port  = int(os.getenv("PORT", "8000"))
     debug = os.getenv("DEBUG", "false").lower() == "true"
 
-    print(f"\n\033[36m  SignalMind v4  →  http://{host}:{port}\033[0m\n")
+    print(f"\n\033[36m  TrendPulse v4  →  http://{host}:{port}\033[0m\n")
 
     uvicorn.run(
         "app:app",

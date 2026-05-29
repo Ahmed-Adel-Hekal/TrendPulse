@@ -1,5 +1,5 @@
 """
-app.py — SignalMind SaaS entry point (v4 — improved)
+app.py — TrendPulse SaaS entry point (v4 — improved)
 
 Improvements over v3:
   - Language middleware: reads ui_language from user_settings, injects into request.state
@@ -31,10 +31,10 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
-logger = logging.getLogger("SignalMind")
+logger = logging.getLogger("TrendPulse")
 
 # ── App ────────────────────────────────────────────────────────────────────────
-app = FastAPI(title="SignalMind SaaS", version="4.0.0")
+app = FastAPI(title="TrendPulse SaaS", version="4.0.0")
 
 # ── Middleware ─────────────────────────────────────────────────────────────────
 app.add_middleware(
@@ -141,4 +141,4 @@ async def startup():
             "Set a random SECRET_KEY in your .env file immediately."
         )
 
-    logger.info("SignalMind v4 started — scheduler active")
+    logger.info("TrendPulse v4 started — scheduler active")

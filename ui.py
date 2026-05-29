@@ -102,7 +102,7 @@ def _sidebar_html(user, active="generate", lang="en"):
         # Shimmer top line via ::before
         '<div class="sidebar-logo">'
         '<div class="logo-icon">⚡</div>'
-        '<span class="logo-text">SignalMind</span>'
+        '<span class="logo-text">TrendPulse</span>'
         '<span class="logo-badge">AI</span>'
         "</div>"
 
@@ -285,7 +285,7 @@ function toggleSidebar() {
 """
 
 
-def _page(content, user, title="SignalMind", active="generate", lang=None):
+def _page(content, user, title="TrendPulse", active="generate", lang=None):
     if lang is None:
         try:
             from db import get_user_ui_language
@@ -322,7 +322,7 @@ def _page(content, user, title="SignalMind", active="generate", lang=None):
         "<head>"
         '<meta charset="UTF-8"/>'
         '<meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
-        "<title>" + _escape_html(title) + " — SignalMind</title>"
+        "<title>" + _escape_html(title) + " — TrendPulse</title>"
         + arabic_font
         + BASE_CSS +
         "<style>html{font-family:" + font + ";}</style>"
@@ -345,12 +345,12 @@ def _page(content, user, title="SignalMind", active="generate", lang=None):
     )
 
 
-def _auth_page(content, title="SignalMind"):
+def _auth_page(content, title="TrendPulse"):
     return (
         "<!DOCTYPE html><html lang=\"en\">"
         "<head><meta charset=\"UTF-8\"/>"
         "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\"/>"
-        "<title>" + _escape_html(title) + " — SignalMind</title>"
+        "<title>" + _escape_html(title) + " — TrendPulse</title>"
         + BASE_CSS +
         "</head><body>"
         '<div class="orb orb-1"></div><div class="orb orb-2"></div>'

@@ -8,7 +8,7 @@ from pathlib import Path
 from db import (get_conn, get_generation, update_generation,
                 quota_ok_atomic, safe_json_loads, OUTPUT_ROOT)
 
-logger = logging.getLogger("SignalMind.pipeline")
+logger = logging.getLogger("TrendPulse.pipeline")
 
 # Separate pools: pipeline workers vs scheduler (prevents starvation)
 _pipeline_pool  = _TPE(max_workers=4, thread_name_prefix="pipeline")

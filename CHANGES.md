@@ -1,4 +1,4 @@
-# SignalMind v4 — Full Improvement Changelog
+# TrendPulse v4 — Full Improvement Changelog
 
 ## Overview
 Complete overhaul across all 7 pillars identified in the audit, plus a new Admin Panel with full system privileges.

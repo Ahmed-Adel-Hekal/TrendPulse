@@ -27,7 +27,7 @@ async def login_page(request: Request, error: str = "", next: str = ""):
         '<div class="auth-logo">'
         '<div class="auth-logo-icon">⚡</div>'
         '<div class="auth-title">Welcome back</div>'
-        '<div class="auth-sub">Sign in to your SignalMind workspace</div>'
+        '<div class="auth-sub">Sign in to your TrendPulse workspace</div>'
         "</div>"
         + err_html +
         '<form method="post" action="/login">'

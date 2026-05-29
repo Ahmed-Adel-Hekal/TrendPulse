@@ -118,13 +118,17 @@ async def strategy_create(request: Request, background_tasks: BackgroundTasks,
     title     = f"{topic[:40]} — {duration_days}d Plan"
     sid       = create_strategy(user["id"], brand_id or None, title, topic, duration_days)
 
+    llm_provider = settings.get("llm_provider", "google")
+    llm_api_key = (settings.get("openrouter_key", "") if llm_provider == "openrouter"
+                   else settings.get("gemini_key", ""))
+
     cfg = {
         "topic":        topic,
         "duration_days":duration_days,
         "language":     language,
         "brand_id":     brand_id,
-        "llm_api_key":  settings.get("gemini_key",""),
-        "llm_provider": settings.get("llm_provider","google"),
+        "llm_api_key":  llm_api_key,
+        "llm_provider": llm_provider,
         "llm_model":    settings.get("llm_model","gemini-2.5-flash"),
     }
     background_tasks.add_task(_run_strategy_pipeline, sid, user["id"], cfg)
@@ -139,8 +143,9 @@ def _run_strategy_pipeline(sid: str, uid: str, cfg: dict):
         update_strategy(sid, "generating")
 
         from core.gemini_client import Agent
-        api_key  = cfg.get("llm_api_key","") or os.getenv("GEMINI_API_KEY","")
         provider = cfg.get("llm_provider","google")
+        env_key  = "OPENROUTER_API_KEY" if provider == "openrouter" else "GEMINI_API_KEY"
+        api_key  = cfg.get("llm_api_key","") or os.getenv(env_key,"")
         model    = cfg.get("llm_model","gemini-2.5-flash")
         duration = cfg.get("duration_days",30)
         topic    = cfg.get("topic","")

@@ -16,7 +16,7 @@ MIN_PASSWORD_CHARS = 8
 # Warn loudly if SECRET_KEY not set — sessions die on restart
 if not SECRET_KEY:
     import logging
-    _log = logging.getLogger("SignalMind.auth")
+    _log = logging.getLogger("TrendPulse.auth")
     _log.critical(
         "SECRET_KEY not set in environment! Sessions will be invalidated on every restart. "
         "Set SECRET_KEY in your .env file for production use."
