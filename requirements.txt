@@ -1,0 +1,49 @@
+# TrendPulse v4 — Python dependencies
+# Install: pip install -r requirements.txt
+
+# ── Web framework ──────────────────────────────────────────────────────────────
+fastapi>=0.110.0,<1.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.9
+starlette>=0.36.0
+
+# ── Security & Auth ────────────────────────────────────────────────────────────
+python-jose[cryptography]>=3.3.0
+passlib>=1.7.4
+
+# ── Rate limiting ──────────────────────────────────────────────────────────────
+slowapi>=0.1.9
+
+# ── Database ───────────────────────────────────────────────────────────────────
+# SQLite is built into Python — no extra package needed
+
+# ── LLM providers ─────────────────────────────────────────────────────────────
+google-genai>=1.0.0
+google-generativeai>=0.7.0  # legacy text fallback support
+openai>=1.0.0
+requests>=2.31.0
+
+# ── ML / NLP (trend engine) ───────────────────────────────────────────────────
+scikit-learn>=1.4.0
+sentence-transformers>=2.7.0
+numpy>=1.26.0
+
+# ── Scraping / data ────────────────────────────────────────────────────────────
+pytrends>=4.9.2
+feedparser>=6.0.11
+beautifulsoup4>=4.12.3
+lxml>=5.1.0
+
+# ── Billing (Stripe) ──────────────────────────────────────────────────────────
+stripe>=7.0.0
+
+# ── Media ─────────────────────────────────────────────────────────────────────
+Pillow>=10.3.0
+# ffmpeg must be installed separately: brew install ffmpeg / apt install ffmpeg
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv>=1.0.1
+json-repair>=0.28.0
+
+# ── Optional font support for Cairo / Arabic ──────────────────────────────────
+# (No Python package needed — Cairo is loaded via Google Fonts in HTML)
