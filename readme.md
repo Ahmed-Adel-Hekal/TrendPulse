@@ -1,4 +1,4 @@
-# ⚡ SignalMind
+# ⚡ TrendPulse
 
 <div align="center">
 
@@ -67,8 +67,8 @@ sudo apt install ffmpeg
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourusername/signalmind.git
-cd signalmind
+git clone https://github.com/yourusername/TrendPulse.git
+cd TrendPulse
 
 # 2. Create and activate virtual environment
 python -m venv venv
@@ -107,7 +107,7 @@ print('Admin granted — visit /admin')
 ## 🏗 Architecture
 
 ```
-signalmind/
+TrendPulse/
 ├── app.py                  # FastAPI app, middleware, 10 routers
 ├── run.py                  # Entry point with pre-flight checks
 ├── db.py                   # SQLite ORM — all CRUD, quota, admin tables
@@ -188,7 +188,7 @@ _run_pipeline
 
 ## 🗄 Database
 
-SignalMind uses **SQLite in WAL mode** with a thread-local connection pool.
+TrendPulse uses **SQLite in WAL mode** with a thread-local connection pool.
 
 | Table | Purpose |
 |---|---|
@@ -400,6 +400,6 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-Built with ⚡ by the SignalMind team
+Built with ⚡ by the TrendPulse team
 
 </div>
