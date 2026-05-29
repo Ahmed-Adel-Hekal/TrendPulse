@@ -1,5 +1,5 @@
 """media/static_post.py — Gemini image generation (v4 — proper error surfacing)."""
-import base64, logging, os, time
+import base64, importlib, importlib.util, logging, os, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -59,33 +59,53 @@ class StaticPostGenerator:
         ]
         return " ".join(parts)
 
+    def _save_inline_image(self, inline_data, filename: str) -> tuple[Optional[str], Optional[str]]:
+        mime_type = getattr(inline_data, "mime_type", "") or "image/png"
+        if not mime_type.startswith("image/"):
+            return None, None
+        ext = mime_type.split("/")[-1].replace("jpeg", "jpg")
+        img_path = self.output_dir / f"{filename}.{ext}"
+        data = getattr(inline_data, "data", b"")
+        if isinstance(data, str):
+            data = base64.b64decode(data)
+        img_path.write_bytes(data)
+        logger.info("Image saved: %s", img_path)
+        return str(img_path), None
+
+    def _generate_image_with_genai(self, prompt: str, filename: str, genai, types) -> tuple[Optional[str], Optional[str]]:
+        client = genai.Client(api_key=self.api_key)
+        response = client.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
+        )
+        parts = []
+        for candidate in getattr(response, "candidates", []) or []:
+            content = getattr(candidate, "content", None)
+            parts.extend(getattr(content, "parts", []) or [])
+        parts.extend(getattr(response, "parts", []) or [])
+        for part in parts:
+            inline_data = getattr(part, "inline_data", None)
+            if inline_data:
+                path, err = self._save_inline_image(inline_data, filename)
+                if path or err:
+                    return path, err
+        return None, "Gemini returned no image part in response"
+
     def _generate_image(self, prompt: str, filename: str) -> tuple[Optional[str], Optional[str]]:
         """Returns (path, error_message). error_message is None on success."""
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=self.api_key)
-            model  = genai.GenerativeModel(self.model)
-            result = model.generate_content(
-                contents=[prompt],
-                generation_config=genai.GenerationConfig(
-                    response_modalities=["IMAGE", "TEXT"]
-                ),
-            )
-
-            for part in result.parts:
-                if part.inline_data and part.inline_data.mime_type.startswith("image/"):
-                    ext        = part.inline_data.mime_type.split("/")[-1].replace("jpeg","jpg")
-                    img_path   = self.output_dir / f"{filename}.{ext}"
-                    img_path.write_bytes(base64.b64decode(part.inline_data.data))
-                    logger.info("Image saved: %s", img_path)
-                    return str(img_path), None
-
-            return None, "Gemini returned no image part in response"
-
-        except Exception as e:
-            err_msg = f"Image generation error: {e}"
-            logger.error(err_msg)
-            return None, err_msg
+        if importlib.util.find_spec("google.genai"):
+            genai = importlib.import_module("google.genai")
+            types = importlib.import_module("google.genai.types")
+            try:
+                return self._generate_image_with_genai(prompt, filename, genai, types)
+            except Exception as e:
+                err_msg = f"Image generation error: {e}"
+                logger.error(err_msg)
+                return None, err_msg
+        err_msg = "Image generation requires the google-genai package. Run: pip install -r requirements.txt"
+        logger.error(err_msg)
+        return None, err_msg
 
     def _process_idea(self, idea: dict, idea_idx: int,
                        brand_color: str, language: str) -> PostResult:

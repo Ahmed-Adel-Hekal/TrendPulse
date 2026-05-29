@@ -19,7 +19,7 @@ slowapi>=0.1.9
 
 # ── LLM providers ─────────────────────────────────────────────────────────────
 google-genai>=1.0.0
-google-generativeai>=0.7.0  # legacy image generator support
+google-generativeai>=0.7.0  # legacy text fallback support
 openai>=1.0.0
 requests>=2.31.0
 

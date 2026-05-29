@@ -108,7 +108,7 @@ class ContentAgent(Agent):
 
     def _build_schema(self, content_type, duration_info=None):
         base = f"Generate {self.config.number_idea} high-converting posts in JSON format in {self.config.language} matching this schema exactly:\n"
-        if content_type == "Video":
+        if (content_type or "").lower() == "video":
             sc = duration_info["scene_count"]  if duration_info else 4
             se = duration_info["seconds_each"] if duration_info else 8
             it = duration_info["ideal_total"]  if duration_info else 32
@@ -126,11 +126,11 @@ RULES: Each scene = exactly {se}s | exactly {sc} scenes per idea | exactly {self
         variation_block = ""
         if variation:
             variation_block = (f"\nCreative Direction (MANDATORY):\n- Tone: {variation['tone']}\n- Angle: {variation['angle']}\n- Visual Style: {variation['visual_style']}\n- Narrative Structure: {variation.get('narrative_structure','problem → solution')}\n")
-            if content_type == "Video":
+            if (content_type or "").lower() == "video":
                 variation_block += f"- Video Opener: {variation.get('video_opener','open on a question')}\n- Pacing: {variation['pacing']}\n- Transitions: {variation['transition']}\n"
             variation_block += f"- Unique seed: {variation['timestamp']}\n"
         duration_block = ""
-        if content_type == "Video" and duration_info:
+        if (content_type or "").lower() == "video" and duration_info:
             duration_block = f"\nPlatform Duration:\n- Target: {', '.join(self.config.target_platform)}\n- Ideal total: {duration_info['ideal_total']}s\n- Scenes: {duration_info['scene_count']} × {duration_info['seconds_each']}s\n"
         comp_block = _format_competitor_context(comp_insight)
         _ar_note = ""
@@ -217,10 +217,10 @@ def run_content_pipeline(topic, platforms, content_type, language, brand_color, 
         mapped = ["X" if p in ("Twitter/X","Twitter","X") else p for p in platforms]
         platform_literals = [p for p in mapped if p in ("X","Facebook","Instagram","LinkedIn","TikTok")]
         config = AgentConfig(llm_provider=llm_provider, llm_api_key=llm_api_key,
-            video_content=(content_type=="video"), images=True, brand_color=brand_color,
+            video_content=((content_type or "").lower()=="video"), images=True, brand_color=brand_color,
             brand_img=brand_img, target_platform=platform_literals,
             model=llm_model or "gemini-2.5-flash", language=language, number_idea=1)
-        n = max(1,min(5,number_idea)); ideas_by_idx = {}
+        n = max(1,min(5,number_idea)); ideas_by_idx = {}; fallback_used = False
         with ThreadPoolExecutor(max_workers=min(n,4)) as pool:
             futures = {pool.submit(_generate_one_idea,i,topic,content_type,config,comp_insight,trend_insight or "",brand_block or "",features_block or ""):i for i in range(n)}
             for fut in _as_completed(futures):
@@ -229,6 +229,7 @@ def run_content_pipeline(topic, platforms, content_type, language, brand_color, 
                 else:
                     fb = _build_fallback_payload(topic,content_type,1)
                     ideas_by_idx[idx] = fb.get("ideas",[{}])[0]
+                    fallback_used = True
         ideas = [ideas_by_idx[i] for i in range(n) if i in ideas_by_idx]
         parsed = {"ideas":ideas}
         warnings = []
@@ -241,10 +242,15 @@ def run_content_pipeline(topic, platforms, content_type, language, brand_color, 
         out_dir  = os.path.join(base_dir,"..","..","outputs" if "/agents" in base_dir else output_dir)
         # use the passed output_dir directly if it looks absolute
         if os.path.isabs(output_dir): out_dir = output_dir
-        results = run_media_generation(parsed=parsed,content_type=content_type,language=language,brand_color=brand_color,image_url=image_url,aspect_ratio=aspect_ratio,out_dir=output_dir,image_model=image_model,video_model=video_model,llm_api_key=llm_api_key,image_api_key=image_api_key,video_api_key=video_api_key,warnings=warnings)
-        output = {"type":content_type,"ideas":parsed.get("ideas",[]),"results":results["results"],"raw_json":parsed,"compliance_report":compliance_report,"status":"completed"}
-        if warnings or results.get("warnings"):
-            output["warning"] = " | ".join(warnings+results.get("warnings",[]))
+        results = run_media_generation(parsed=parsed,content_type=content_type,language=language,brand_color=brand_color,image_url=image_url,aspect_ratio=aspect_ratio,out_dir=out_dir,image_model=image_model,video_model=video_model,llm_api_key=llm_api_key,image_api_key=image_api_key,video_api_key=video_api_key,warnings=warnings)
+        result_warnings = results.get("warnings", [])
+        mock_or_failed_media = any(
+            isinstance(item, dict) and item.get("status") in {"mock_only", "failed", "partial"}
+            for item in results.get("results", [])
+        )
+        output = {"type":content_type,"ideas":parsed.get("ideas",[]),"results":results["results"],"raw_json":parsed,"compliance_report":compliance_report,"status":"completed","fallback_used":fallback_used or mock_or_failed_media}
+        if warnings or result_warnings:
+            output["warning"] = " | ".join(warnings+result_warnings)
         return output
     except Exception as exc:
         return {"type":content_type,"ideas":[],"results":[],"raw_json":{"ideas":[]},"error":str(exc),"status":"failed"}
@@ -258,20 +264,36 @@ def run_media_generation(parsed, content_type, language, brand_color, image_url,
         if isinstance(obj,list): return [_to_dict(i) for i in obj]
         return obj
     warnings = warnings or []; results = []
-    if content_type == "video":
+    ideas = parsed.get("ideas", [])
+    media_type = (content_type or "static").lower()
+    if media_type == "video":
         key = (video_api_key or llm_api_key or os.environ.get("AIML_API_KEY",""))
         if VideoGenerator is None or not key:
             warnings.append("Video generation unavailable: missing AIML_API_KEY.")
-            results = [{"idea_index":i,"status":"mock_only","error":"Video generation unavailable"} for i,_ in enumerate(parsed.get("ideas",[]))]
+            results = [{"idea_index":i,"status":"mock_only","error":"Video generation unavailable"} for i,_ in enumerate(ideas)]
         else:
-            gen = VideoGenerator(api_key=key,image_url=image_url,language=language,brand_colors=brand_color,aspect_ratio=aspect_ratio,output_dir=out_dir,model=video_model)
-            results = _to_dict(gen.generate_all(parsed))
+            try:
+                gen = VideoGenerator(api_key=key,image_url=image_url,language=language,brand_colors=brand_color,aspect_ratio=aspect_ratio,output_dir=out_dir,model=video_model)
+                results = _to_dict(gen.generate_all(parsed))
+            except Exception as exc:
+                warnings.append(f"Video generation failed after ideas were created: {exc}")
+                results = [{"idea_index":i,"status":"mock_only","error":f"Video generation failed: {exc}"} for i,_ in enumerate(ideas)]
     else:
         key = (image_api_key or llm_api_key or os.environ.get("GEMINI_API_KEY",""))
         if StaticPostGenerator is None or not key:
             warnings.append("Image generation unavailable: missing GEMINI_API_KEY.")
-            results = [{"idea_index":i,"status":"mock_only","error":"Image generation unavailable"} for i,_ in enumerate(parsed.get("ideas",[]))]
+            results = [{"idea_index":i,"status":"mock_only","error":"Image generation unavailable"} for i,_ in enumerate(ideas)]
         else:
-            gen = StaticPostGenerator(gemini_api_key=key,brand_colors=brand_color,output_dir=out_dir,aspect_ratio="4:5",model=image_model)
-            results = _to_dict(gen.generate_all(parsed))
+            try:
+                gen = StaticPostGenerator(api_key=key,output_dir=out_dir,model=image_model)
+                results = _to_dict(gen.generate_all(parsed, brand_colors=brand_color, language=language))
+            except Exception as exc:
+                warnings.append(f"Image generation failed after ideas were created: {exc}")
+                results = [{"idea_index":i,"status":"mock_only","error":f"Image generation failed: {exc}"} for i,_ in enumerate(ideas)]
+    media_errors = []
+    for item in results:
+        if isinstance(item, dict) and item.get("status") in {"mock_only", "failed", "partial"} and item.get("error"):
+            media_errors.append(str(item["error"]))
+    if media_errors and not any("media" in warning.lower() or "generation" in warning.lower() for warning in warnings):
+        warnings.append("Some media outputs were not fully generated: " + "; ".join(media_errors[:3]))
     return {"results":results,"warnings":warnings}
