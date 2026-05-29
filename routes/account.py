@@ -2,8 +2,9 @@
 from __future__ import annotations
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from urllib.parse import quote_plus
 
-from auth import get_current_user, escape_html, hash_password, verify_password
+from auth import get_current_user, escape_html, hash_password, verify_password, password_validation_error
 from db import (get_user_settings, save_user_settings, get_conn, quota_status,
                 PLAN_QUOTAS, PLAN_PRICES, get_usage_this_month)
 from core.i18n import normalize_lang, t as _t, SUPPORTED_LANGUAGES
@@ -171,8 +172,9 @@ async def account_password_save(request: Request,
 
     if not verify_password(current_password, user["password_hash"]):
         return RedirectResponse("/account?error=Current+password+incorrect", status_code=303)
-    if len(new_password) < 8:
-        return RedirectResponse("/account?error=New+password+must+be+at+least+8+chars", status_code=303)
+    password_error = password_validation_error(new_password)
+    if password_error:
+        return RedirectResponse("/account?error=" + quote_plus(password_error), status_code=303)
 
     with get_conn() as conn:
         conn.execute("UPDATE users SET password_hash=? WHERE id=?",

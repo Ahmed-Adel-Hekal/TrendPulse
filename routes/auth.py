@@ -3,8 +3,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from urllib.parse import quote_plus
+
 from auth import (verify_password, create_token, escape_html,
-                  update_last_login, TOKEN_EXPIRE)
+                  update_last_login, TOKEN_EXPIRE, password_validation_error)
 from db import get_user_by_email, create_user, quota_status, get_user_settings, get_user_generations, get_calendar_items
 from core.i18n import normalize_lang, t as _t
 import ui
@@ -118,8 +120,11 @@ async def register_post(request: Request,
                         password: str = Form("")):
     name  = name.strip()
     email = email.strip().lower()
-    if not name or not email or len(password) < 8:
-        return RedirectResponse("/register?error=All+fields+required+(password+min+8+chars)", status_code=303)
+    if not name or not email:
+        return RedirectResponse("/register?error=All+fields+required", status_code=303)
+    password_error = password_validation_error(password)
+    if password_error:
+        return RedirectResponse("/register?error=" + quote_plus(password_error), status_code=303)
     if get_user_by_email(email):
         return RedirectResponse("/register?error=Email+already+registered", status_code=303)
     try:
@@ -130,7 +135,7 @@ async def register_post(request: Request,
                         max_age=TOKEN_EXPIRE * 60)
         return resp
     except Exception as e:
-        return RedirectResponse("/register?error=" + escape_html(str(e))[:80], status_code=303)
+        return RedirectResponse("/register?error=" + quote_plus(str(e)[:120]), status_code=303)
 
 
 # ── Logout ─────────────────────────────────────────────────────────

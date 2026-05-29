@@ -7,9 +7,11 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from db import get_conn, now_iso
 
+
 SECRET_KEY   = os.getenv("SECRET_KEY", "")
 ALGORITHM    = "HS256"
 TOKEN_EXPIRE = 60 * 24 * 7  # minutes
+MIN_PASSWORD_CHARS = 8
 
 # Warn loudly if SECRET_KEY not set — sessions die on restart
 if not SECRET_KEY:
@@ -21,10 +23,20 @@ if not SECRET_KEY:
     )
     SECRET_KEY = secrets.token_hex(32)
 
-pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_ctx = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated=["bcrypt"])
+
+
+def password_validation_error(password: str) -> str:
+    """Return a user-safe password validation error, or an empty string when valid."""
+    if len(password or "") < MIN_PASSWORD_CHARS:
+        return f"Password must be at least {MIN_PASSWORD_CHARS} characters"
+    return ""
 
 
 def hash_password(p: str) -> str:
+    error = password_validation_error(p)
+    if error:
+        raise ValueError(error)
     return pwd_ctx.hash(p)
 
 

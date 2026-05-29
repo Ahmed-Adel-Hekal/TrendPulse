@@ -355,7 +355,7 @@ Results cached for **24 hours** in `data/processed/trend_cache.json`. Clear from
 ## 🔒 Security
 
 - **JWT** tokens stored as `HttpOnly`, `SameSite=Lax` cookies (7-day expiry)
-- **bcrypt** password hashing via passlib
+- **PBKDF2-SHA256** password hashing via passlib
 - **XSS prevention** — `escape_html()` and `escape_js()` applied to all user-controlled strings in templates
 - **Admin guard** — `require_admin()` on every admin endpoint; returns 303 redirect (not 403) to avoid URL enumeration
 - **Security headers** — `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`
@@ -370,7 +370,7 @@ Results cached for **24 hours** in `data/processed/trend_cache.json`. Clear from
 |---|---|
 | Web Framework | FastAPI + Uvicorn |
 | Database | SQLite (WAL, thread-local pool) |
-| Auth | JWT (python-jose) + bcrypt (passlib) |
+| Auth | JWT (python-jose) + PBKDF2-SHA256 (passlib) |
 | LLM — Text | Google Gemini 2.5 Flash / OpenRouter |
 | LLM — Images | Gemini 3.1 Flash Image Preview |
 | LLM — Video | Veo 3.1 via AIML API |
