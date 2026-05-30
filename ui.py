@@ -1,4 +1,4 @@
-"""ui.py — Page shell, sidebar, idea cards, HTML helpers. (v5 — premium UI)"""
+"""ui.py — Page shell, sidebar, idea cards, HTML helpers. (v6 — UX fixes)"""
 from __future__ import annotations
 import re
 from pathlib import Path
@@ -13,15 +13,15 @@ PLAT_ICONS = {"Instagram": "📸", "TikTok": "🎬", "LinkedIn": "💼",
 
 def _escape_html(s: str) -> str:
     if not s: return ""
-    return (str(s).replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
-            .replace('"',"&quot;").replace("'","&#x27;"))
+    return (str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            .replace('"', "&quot;").replace("'", "&#x27;"))
 
 
 def _escape_js(s: str) -> str:
     if not s: return ""
-    return (str(s).replace("\\","\\\\").replace("'","\\'").replace('"','\\"')
-            .replace("\n","\\n").replace("\r","\\r")
-            .replace("<","\\x3C").replace(">","\\x3E").replace("&","\\x26"))
+    return (str(s).replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"')
+            .replace("\n", "\\n").replace("\r", "\\r")
+            .replace("<", "\\x3C").replace(">", "\\x3E").replace("&", "\\x26"))
 
 
 def _load_css():
@@ -94,18 +94,15 @@ def _sidebar_html(user, active="generate", lang="en"):
     quota_label = _escape_html(_t(lang, "quota.label")).upper()
     used_label  = _escape_html(_t(lang, "quota.used"))
     logout_lbl  = _escape_html(_t(lang, "nav.logout"))[:3]
-
     rtl_attr = 'dir="rtl"' if is_rtl(lang) else ""
 
     return (
         '<aside class="sidebar" ' + rtl_attr + ">"
-        # Shimmer top line via ::before
         '<div class="sidebar-logo">'
         '<div class="logo-icon">⚡</div>'
-        '<span class="logo-text">TrendPulse</span>'
+        '<span class="logo-text">SignalMind</span>'
         '<span class="logo-badge">AI</span>'
         "</div>"
-
         '<div class="quota-pill">'
         '<div class="quota-label">' + quota_label + "</div>"
         '<div class="quota-bar-wrap">'
@@ -115,18 +112,15 @@ def _sidebar_html(user, active="generate", lang="en"):
         "<span>" + str(q["used"]) + " / " + str(q["limit"]) + " " + used_label + "</span>"
         '<span class="plan-badge">' + plan + "</span>"
         "</div></div>"
-
         + _lang_switcher_html(lang) +
-
         '<nav class="sidebar-nav">'
         '<div class="nav-section">' + _escape_html(_t(lang, "nav.workspace")) + "</div>"
         + nav_html + admin_section +
         "</nav>"
-
         '<div class="sidebar-footer">'
         '<div class="user-row">'
         '<div class="user-avatar">' + init + "</div>"
-        "<div class=\"user-info\">"
+        '<div class="user-info">'
         '<div class="user-name">' + name + "</div>"
         '<div class="user-plan">' + plan + "</div>"
         "</div>"
@@ -136,7 +130,7 @@ def _sidebar_html(user, active="generate", lang="en"):
     )
 
 
-# ── Inline JS (all interactive functions) ─────────────────────────
+# ── Inline JS ──────────────────────────────────────────────────────────────────
 _INLINE_JS = """
 function toast(msg, type) {
   type = type || 'info';
@@ -161,9 +155,9 @@ function _spinner(label) {
        + '<span style="font-size:12px;color:var(--text3);">' + label + '</span></span>';
 }
 async function saveStaticEdits(gid, idx) {
-  var hook     = (document.getElementById('hook-'    + gid + '-' + idx)||{}).value||'';
-  var copy     = (document.getElementById('copy-'    + gid + '-' + idx)||{}).value||'';
-  var imgdesc  = (document.getElementById('imgdesc-' + gid + '-' + idx)||{}).value||'';
+  var hook    = (document.getElementById('hook-'    + gid + '-' + idx)||{}).value||'';
+  var copy    = (document.getElementById('copy-'    + gid + '-' + idx)||{}).value||'';
+  var imgdesc = (document.getElementById('imgdesc-' + gid + '-' + idx)||{}).value||'';
   _setStatus(gid, idx, _spinner('Saving…'), true);
   try {
     var r = await fetch('/api/update-idea/' + gid + '/' + idx, {
@@ -275,7 +269,6 @@ function _pollIdeaStatus(gid, idx) {
   }
   setTimeout(poll, 2000);
 }
-// Mobile sidebar toggle
 var _sidebarOpen = false;
 function toggleSidebar() {
   _sidebarOpen = !_sidebarOpen;
@@ -285,7 +278,7 @@ function toggleSidebar() {
 """
 
 
-def _page(content, user, title="TrendPulse", active="generate", lang=None):
+def _page(content, user, title="SignalMind", active="generate", lang=None):
     if lang is None:
         try:
             from db import get_user_ui_language
@@ -322,7 +315,7 @@ def _page(content, user, title="TrendPulse", active="generate", lang=None):
         "<head>"
         '<meta charset="UTF-8"/>'
         '<meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
-        "<title>" + _escape_html(title) + " — TrendPulse</title>"
+        "<title>" + _escape_html(title) + " — SignalMind</title>"
         + arabic_font
         + BASE_CSS +
         "<style>html{font-family:" + font + ";}</style>"
@@ -333,7 +326,6 @@ def _page(content, user, title="TrendPulse", active="generate", lang=None):
         '<div class="layout">'
         + _sidebar_html(user, active, lang) +
         '<main class="main" lang="' + lang + '" dir="' + dir_val + '" style="font-family:' + font + ';">'
-        # Mobile hamburger — visible on small screens
         '<div class="hamburger" onclick="toggleSidebar()" style="position:fixed;top:14px;left:14px;z-index:60;">'
         "<span></span><span></span><span></span>"
         "</div>"
@@ -345,12 +337,12 @@ def _page(content, user, title="TrendPulse", active="generate", lang=None):
     )
 
 
-def _auth_page(content, title="TrendPulse"):
+def _auth_page(content, title="SignalMind"):
     return (
-        "<!DOCTYPE html><html lang=\"en\">"
-        "<head><meta charset=\"UTF-8\"/>"
-        "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\"/>"
-        "<title>" + _escape_html(title) + " — TrendPulse</title>"
+        '<!DOCTYPE html><html lang="en">'
+        '<head><meta charset="UTF-8"/>'
+        '<meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
+        "<title>" + _escape_html(title) + " — SignalMind</title>"
         + BASE_CSS +
         "</head><body>"
         '<div class="orb orb-1"></div><div class="orb orb-2"></div>'
@@ -412,6 +404,46 @@ def _media_display_html(uid, gid, idea_idx, ct, media):
     return html
 
 
+# ── UX #5: per-idea media status badge ────────────────────────────────────────
+def _media_status_badge(media: dict | None, ct: str) -> str:
+    """Inline badge shown in the idea card header indicating media state."""
+    if not media:
+        return (
+            '<span class="badge badge-gray" style="font-size:9px;opacity:0.7;" '
+            'title="Click \'Generate\' below to create media">○ No media</span>'
+        )
+
+    status = media.get("status", "")
+
+    if status == "completed":
+        label = "🎬 Video ready" if ct == "video" else "🖼 Image ready"
+        return f'<span class="badge badge-green" style="font-size:9px;">{label}</span>'
+
+    if status == "partial":
+        err   = media.get("error", "")
+        short = (err[:55] + "…") if len(err) > 55 else err
+        return (
+            f'<span class="badge badge-amber" style="font-size:9px;" '
+            f'title="{_escape_html(err)}">⚠ Partial — {_escape_html(short)}</span>'
+        )
+
+    if status == "failed":
+        err   = media.get("error", "Generation failed")
+        short = (err[:55] + "…") if len(err) > 55 else err
+        return (
+            f'<span class="badge badge-red" style="font-size:9px;" '
+            f'title="{_escape_html(err)}">✕ {_escape_html(short)}</span>'
+        )
+
+    if status == "mock_only":
+        return (
+            '<span class="badge badge-gray" style="font-size:9px;" '
+            'title="Add an API key in Account → API Keys">○ No API key</span>'
+        )
+
+    return f'<span class="badge badge-gray" style="font-size:9px;">◌ {_escape_html(status)}</span>'
+
+
 def _build_ideas_html(gen):
     result = gen.get("result") or {}
     if not result: return ""
@@ -425,9 +457,9 @@ def _build_ideas_html(gen):
         if isinstance(r, dict) and r.get("idea_index") is not None:
             media_by_idx[int(r["idea_index"])] = r
 
-    compliance = result.get("compliance_report") or {}
+    compliance  = result.get("compliance_report") or {}
     comp_status = compliance.get("status", "passed")
-    comp_class  = {"passed":"badge-green","sanitized":"badge-amber","adjusted":"badge-red"}.get(comp_status, "badge-gray")
+    comp_class  = {"passed": "badge-green", "sanitized": "badge-amber", "adjusted": "badge-red"}.get(comp_status, "badge-gray")
 
     fallback_warn = ""
     if gen.get("fallback_used") or result.get("fallback_used"):
@@ -452,6 +484,8 @@ def _build_ideas_html(gen):
     for i, idea in enumerate(ideas):
         gid_js = _escape_js(gid)
         delay  = str(i * 0.08) + "s"
+        media  = media_by_idx.get(i)                          # UX #5
+        m_badge = _media_status_badge(media, ct)              # UX #5
 
         if ct == "video":
             hook     = idea.get("hook", {})
@@ -473,7 +507,7 @@ def _build_ideas_html(gen):
                 scenes_ed += (
                     '<div class="scene-editor">'
                     '<div class="scene-editor-header">'
-                    '<span class="scene-num">Scene ' + str(s.get("scene", si+1)) + "</span>"
+                    '<span class="scene-num">Scene ' + str(s.get("scene", si + 1)) + "</span>"
                     '<span class="scene-dur">' + str(s.get("duration_seconds", 8)) + "s</span>"
                     "</div>"
                     '<div class="scene-fields">'
@@ -491,9 +525,10 @@ def _build_ideas_html(gen):
             cards.append(
                 '<div class="idea-card" id="idea-card-' + gid + "-" + str(i) + '" style="animation-delay:' + delay + ';">'
                 '<div class="idea-card-header">'
-                '<div class="flex items-center gap-2">'
-                '<span style="font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:600;">IDEA ' + str(i+1) + "</span>"
+                '<div class="flex items-center gap-2" style="flex-wrap:wrap;">'
+                '<span style="font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:600;">IDEA ' + str(i + 1) + "</span>"
                 '<span class="badge badge-purple" style="font-size:9px;">🎬 VIDEO</span>'
+                + m_badge +   # ← UX #5 badge
                 "</div>"
                 '<div class="idea-actions">'
                 '<button class="btn btn-ghost btn-sm" onclick="saveScriptChanges(\'' + gid_js + "'," + str(i) + ')">💾 Save</button>'
@@ -519,7 +554,7 @@ def _build_ideas_html(gen):
                 + scenes_ed +
                 "</div>"
                 '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;">' + tags + "</div>"
-                + _media_display_html(uid, gid, i, ct, media_by_idx.get(i)) +
+                + _media_display_html(uid, gid, i, ct, media) +
                 "</div>"
                 '<div class="idea-status-bar" id="idea-status-' + gid + "-" + str(i) + '"></div>'
                 "</div>"
@@ -536,9 +571,10 @@ def _build_ideas_html(gen):
             cards.append(
                 '<div class="idea-card" id="idea-card-' + gid + "-" + str(i) + '" style="animation-delay:' + delay + ';">'
                 '<div class="idea-card-header">'
-                '<div class="flex items-center gap-2">'
-                '<span style="font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:600;">IDEA ' + str(i+1) + "</span>"
+                '<div class="flex items-center gap-2" style="flex-wrap:wrap;">'
+                '<span style="font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:600;">IDEA ' + str(i + 1) + "</span>"
                 '<span class="badge badge-blue" style="font-size:9px;">📸 STATIC</span>'
+                + m_badge +   # ← UX #5 badge
                 "</div>"
                 '<div class="idea-actions">'
                 '<button class="btn btn-ghost btn-sm" onclick="saveStaticEdits(\'' + gid_js + "'," + str(i) + ')">💾 Save</button>'
@@ -561,7 +597,7 @@ def _build_ideas_html(gen):
                 + _escape_html(img_desc) + "</textarea>"
                 "</div>"
                 '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;">' + tags + "</div>"
-                + _media_display_html(uid, gid, i, ct, media_by_idx.get(i)) +
+                + _media_display_html(uid, gid, i, ct, media) +
                 "</div>"
                 '<div class="idea-status-bar" id="idea-status-' + gid + "-" + str(i) + '"></div>'
                 "</div>"
@@ -583,20 +619,11 @@ def _build_competitor_report_html(result, gid=""):
 
     rows = ""
     if hooks:
-        rows += (
-            '<div class="comp-stat"><strong style="color:var(--accent);">Top Hooks</strong><br>'
-            + "<br>".join("· " + _escape_html(h) for h in hooks[:4]) + "</div>"
-        )
+        rows += '<div class="comp-stat"><strong style="color:var(--accent);">Top Hooks</strong><br>' + "<br>".join("· " + _escape_html(h) for h in hooks[:4]) + "</div>"
     if patterns:
-        rows += (
-            '<div class="comp-stat"><strong style="color:var(--blue);">Content Patterns</strong><br>'
-            + "<br>".join("· " + _escape_html(p) for p in patterns[:3]) + "</div>"
-        )
+        rows += '<div class="comp-stat"><strong style="color:var(--blue);">Content Patterns</strong><br>' + "<br>".join("· " + _escape_html(p) for p in patterns[:3]) + "</div>"
     if gaps:
-        rows += (
-            '<div class="comp-stat"><strong style="color:var(--green);">Gap Opportunities</strong><br>'
-            + "<br>".join("· " + _escape_html(g) for g in gaps[:3]) + "</div>"
-        )
+        rows += '<div class="comp-stat"><strong style="color:var(--green);">Gap Opportunities</strong><br>' + "<br>".join("· " + _escape_html(g) for g in gaps[:3]) + "</div>"
     if kws:
         rows += '<div class="comp-stat"><strong>Keywords:</strong> ' + _escape_html(", ".join(kws[:10])) + "</div>"
 
@@ -608,8 +635,7 @@ def _build_competitor_report_html(result, gid=""):
         '<div class="comp-report">'
         '<div class="comp-report-title" style="display:flex;justify-content:space-between;align-items:center;">'
         "🔍 Competitor Intelligence" + link + "</div>"
-        + rows +
-        "</div>"
+        + rows + "</div>"
     )
 
 
@@ -646,7 +672,7 @@ def _render_competitor_panel(ci):
             "</div></div>"
         )
     if ci.get("error") and not any([ci.get("top_hooks"), ci.get("content_patterns"), ci.get("gap_opportunities")]):
-        return '<div class="card"><div class="alert alert-warn">⚠ ' + _escape_html(ci.get("error","")) + "</div></div>"
+        return '<div class="card"><div class="alert alert-warn">⚠ ' + _escape_html(ci.get("error", "")) + "</div></div>"
 
     def _items(items, color="var(--text2)", limit=8):
         if not items:
@@ -659,14 +685,13 @@ def _render_competitor_panel(ci):
         )
 
     kw_pills = "".join(
-        '<span style="background:var(--blue-dim);color:var(--blue);border:1px solid rgba(79,142,247,0.2);'
-        'padding:3px 10px;border-radius:20px;font-size:11px;font-family:var(--mono);">'
+        '<span style="background:var(--blue-dim);color:var(--blue);border:1px solid rgba(79,142,247,0.2);padding:3px 10px;border-radius:20px;font-size:11px;font-family:var(--mono);">'
         + _escape_html(kw) + "</span>"
         for kw in (ci.get("keyword_cloud") or [])[:18]
     ) or '<span style="color:var(--text3);font-size:12px;">—</span>'
 
-    bo = ci.get("brand_overview", "")
-    ts = ci.get("tone_summary", "")
+    bo  = ci.get("brand_overview", "")
+    ts  = ci.get("tone_summary", "")
     as_ = ci.get("audience_signals", "")
 
     return (
@@ -712,7 +737,6 @@ def _render_trend_panel(ti):
         strength            = t.get("trend_strength", "low")
         color, emoji, label = strength_cfg.get(strength, strength_cfg["low"])
         conf  = t.get("confidence_score", 0)
-
         fcast = t.get("forecast", "")
         fcast_badge = ""
         if fcast == "viral":
@@ -734,8 +758,7 @@ def _render_trend_panel(ti):
             "</div></div>"
             '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'
             '<span style="background:rgba(0,0,0,0.3);color:' + color + ';padding:2px 8px;border-radius:20px;font-size:10px;font-family:var(--mono);">' + label + "</span>"
-            + fcast_badge +
-            "</div>"
+            + fcast_badge + "</div>"
             '<div class="progress"><div class="progress-bar" style="width:' + str(conf) + '%;background:' + color + ';"></div></div>'
             "</div>"
         )

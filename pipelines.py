@@ -1,4 +1,4 @@
-"""pipelines.py — Background pipeline runners and scheduler. (v4 — improved)"""
+"""pipelines.py — Background pipeline runners and scheduler. (v5 — quota release on failure)"""
 from __future__ import annotations
 import asyncio as _asyncio
 import logging
@@ -6,11 +6,11 @@ from concurrent.futures import ThreadPoolExecutor as _TPE
 from pathlib import Path
 
 from db import (get_conn, get_generation, update_generation,
-                quota_ok_atomic, safe_json_loads, OUTPUT_ROOT)
+                quota_ok_atomic, release_quota_reservation,
+                safe_json_loads, OUTPUT_ROOT)
 
-logger = logging.getLogger("TrendPulse.pipeline")
+logger = logging.getLogger("SignalMind.pipeline")
 
-# Separate pools: pipeline workers vs scheduler (prevents starvation)
 _pipeline_pool  = _TPE(max_workers=4, thread_name_prefix="pipeline")
 _scheduler_pool = _TPE(max_workers=2, thread_name_prefix="scheduler")
 _bulk_progress: dict = {}
@@ -23,20 +23,19 @@ def _run_pipeline(gid: str, uid: str, cfg: dict):
     import time as _t
     t0 = _t.perf_counter()
 
-    # Skip if cancelled before firing
     with get_conn() as conn:
         row = conn.execute("SELECT status FROM generations WHERE id=?", (gid,)).fetchone()
     if row and row["status"] == "cancelled":
+        # Cancelled before firing — return the reserved quota slot
+        release_quota_reservation(uid)
         logger.info("Pipeline skipped — gid=%s cancelled", gid)
         return
 
-    # NOTE: record_usage() is NO LONGER called here.
-    # It is called inside update_generation() when status → "completed".
     update_generation(gid, "running")
     logger.info(
         "Pipeline START gid=%s topic=%r provider=%s model=%s ideas=%s type=%s",
-        gid, cfg.get("topic","")[:40], cfg.get("llm_provider","google"),
-        cfg.get("llm_model","?"), cfg.get("number_idea",1), cfg.get("content_type","static")
+        gid, cfg.get("topic", "")[:40], cfg.get("llm_provider", "google"),
+        cfg.get("llm_model", "?"), cfg.get("number_idea", 1), cfg.get("content_type", "static")
     )
 
     try:
@@ -50,23 +49,23 @@ def _run_pipeline(gid: str, uid: str, cfg: dict):
             number_idea      = cfg["number_idea"],
             niche            = cfg["niche"],
             output_dir       = str(OUTPUT_ROOT / uid / gid),
-            image_url        = cfg.get("image_url",""),
-            aspect_ratio     = cfg.get("aspect_ratio","9:16"),
-            competitor_urls  = cfg.get("competitor_urls",[]) or [],
-            product_features = cfg.get("product_features",[]) or [],
-            brand_profile    = cfg.get("brand_profile",{}) or {},
-            llm_provider     = cfg.get("llm_provider","google"),
-            llm_model        = cfg.get("llm_model","gemini-2.5-flash"),
-            image_model      = cfg.get("image_model","gemini-3.1-flash-image-preview"),
-            video_model      = cfg.get("video_model","google/veo-3.1-i2v"),
+            image_url        = cfg.get("image_url", ""),
+            aspect_ratio     = cfg.get("aspect_ratio", "9:16"),
+            competitor_urls  = cfg.get("competitor_urls", []) or [],
+            product_features = cfg.get("product_features", []) or [],
+            brand_profile    = cfg.get("brand_profile", {}) or {},
+            llm_provider     = cfg.get("llm_provider", "google"),
+            llm_model        = cfg.get("llm_model", "gemini-2.5-flash"),
+            image_model      = cfg.get("image_model", "gemini-3.1-flash-image-preview"),
+            video_model      = cfg.get("video_model", "google/veo-3.1-i2v"),
             llm_api_key      = cfg.get("llm_api_key") or None,
             image_api_key    = cfg.get("image_api_key") or None,
             video_api_key    = cfg.get("video_api_key") or None,
             human_review     = cfg.get("human_review", False),
         )
 
-        status       = result.get("status", "completed")
-        fallback_used= bool(result.get("fallback_used", False))
+        status        = result.get("status", "completed")
+        fallback_used = bool(result.get("fallback_used", False))
 
         update_generation(gid, status, result=result, fallback_used=fallback_used)
         logger.info(
@@ -76,6 +75,8 @@ def _run_pipeline(gid: str, uid: str, cfg: dict):
 
     except Exception as exc:
         logger.error("Generation %s failed: %s", gid, exc)
+        # ── Fix #4: release the reserved quota slot on failure ─────────────
+        release_quota_reservation(uid)
         update_generation(gid, "failed", error=str(exc))
 
 
@@ -86,18 +87,18 @@ def _run_media_approval(gid: str, uid: str, cfg: dict, ideas_json: dict):
         from agents.content_agent import run_media_generation
         out_dir = str(OUTPUT_ROOT / uid / gid)
         media   = run_media_generation(
-            parsed       = ideas_json,
-            content_type = cfg["content_type"],
-            language     = cfg["language"],
-            brand_color  = [cfg["brand_color"]],
-            image_url    = cfg.get("image_url",""),
-            aspect_ratio = cfg.get("aspect_ratio","9:16"),
-            out_dir      = out_dir,
-            image_model  = cfg.get("image_model","gemini-3.1-flash-image-preview"),
-            video_model  = cfg.get("video_model","google/veo-3.1-i2v"),
-            llm_api_key  = cfg.get("llm_api_key") or None,
-            image_api_key= cfg.get("image_api_key") or None,
-            video_api_key= cfg.get("video_api_key") or None,
+            parsed        = ideas_json,
+            content_type  = cfg["content_type"],
+            language      = cfg["language"],
+            brand_color   = [cfg["brand_color"]],
+            image_url     = cfg.get("image_url", ""),
+            aspect_ratio  = cfg.get("aspect_ratio", "9:16"),
+            out_dir       = out_dir,
+            image_model   = cfg.get("image_model", "gemini-3.1-flash-image-preview"),
+            video_model   = cfg.get("video_model", "google/veo-3.1-i2v"),
+            llm_api_key   = cfg.get("llm_api_key") or None,
+            image_api_key = cfg.get("image_api_key") or None,
+            video_api_key = cfg.get("video_api_key") or None,
         )
         gen = get_generation(gid, uid)
         if gen and gen.get("result"):
@@ -118,18 +119,18 @@ def _run_single_idea_media(gid: str, uid: str, idea_idx: int,
         from agents.content_agent import run_media_generation
         out_dir = str(OUTPUT_ROOT / uid / gid)
         media   = run_media_generation(
-            parsed       = single_idea_json,
-            content_type = cfg.get("content_type","static"),
-            language     = cfg.get("language","English"),
-            brand_color  = [cfg.get("brand_color","#4f8ef7")],
-            image_url    = cfg.get("image_url",""),
-            aspect_ratio = cfg.get("aspect_ratio","9:16"),
-            out_dir      = out_dir,
-            image_model  = cfg.get("image_model","gemini-3.1-flash-image-preview"),
-            video_model  = cfg.get("video_model","google/veo-3.1-i2v"),
-            llm_api_key  = cfg.get("llm_api_key") or None,
-            image_api_key= cfg.get("image_api_key") or None,
-            video_api_key= cfg.get("video_api_key") or None,
+            parsed        = single_idea_json,
+            content_type  = cfg.get("content_type", "static"),
+            language      = cfg.get("language", "English"),
+            brand_color   = [cfg.get("brand_color", "#4f8ef7")],
+            image_url     = cfg.get("image_url", ""),
+            aspect_ratio  = cfg.get("aspect_ratio", "9:16"),
+            out_dir       = out_dir,
+            image_model   = cfg.get("image_model", "gemini-3.1-flash-image-preview"),
+            video_model   = cfg.get("video_model", "google/veo-3.1-i2v"),
+            llm_api_key   = cfg.get("llm_api_key") or None,
+            image_api_key = cfg.get("image_api_key") or None,
+            video_api_key = cfg.get("video_api_key") or None,
         )
         gen = get_generation(gid, uid)
         if gen and gen.get("result"):
@@ -163,7 +164,6 @@ def _run_strategy_post(gid: str, uid: str, cfg: dict, sid: str, day_idx: int, to
 
 # ── Background scheduler ───────────────────────────────────────────────────────
 async def _scheduler_loop():
-    """Check every 60s for scheduled generations whose time has arrived."""
     await _asyncio.sleep(5)
     while True:
         try:
@@ -187,11 +187,14 @@ def _fire_due_generations():
 
     logger.info("Scheduler: firing %d due generation(s)", len(due))
     for row in due:
-        gid = row["id"]; uid = row["user_id"]
+        gid = row["id"]
+        uid = row["user_id"]
         cfg = safe_json_loads(row["config_json"], {})
-        # Get user for quota check
+
         from db import get_user_by_id
         user = get_user_by_id(uid)
+
+        # Use quota_ok_atomic so the scheduled job also claims a slot properly
         if not user or not quota_ok_atomic(user):
             logger.warning("Scheduler: skipping gid=%s — quota exhausted", gid)
             with get_conn() as conn:
@@ -200,6 +203,7 @@ def _fire_due_generations():
                     (gid,)
                 )
             continue
+
         with get_conn() as conn:
             conn.execute("UPDATE generations SET status='pending' WHERE id=?", (gid,))
         _scheduler_pool.submit(_run_pipeline, gid, uid, cfg)

@@ -1,11 +1,12 @@
-"""routes/generate.py — Generate page, result page, history."""
+"""routes/generate.py — Generate page, result page, history. (v6 — UX fixes #5 #6 #7)"""
 from __future__ import annotations
 from fastapi import APIRouter, BackgroundTasks, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from auth import get_current_user, escape_html, escape_js
 from db import (create_generation, get_generation, get_user_generations,
-                quota_ok_atomic, get_user_settings, get_default_brand,
+                quota_ok_atomic, release_quota_reservation,
+                get_user_settings, get_default_brand,
                 PLATFORM_CHOICES, LANGUAGE_CHOICES, detect_niche, get_brand_profile)
 from core.i18n import normalize_lang, t as _t
 import ui
@@ -22,6 +23,12 @@ STATUS_BADGE = {
     "awaiting_approval": "badge-amber",
     "cancelled":         "badge-gray",
     "generating_media":  "badge-amber",
+}
+
+# ── UX #7: Human-readable provider/model labels for the generate form ─────────
+PROVIDER_LABELS = {
+    "google":      "Google Gemini",
+    "openrouter":  "OpenRouter",
 }
 
 
@@ -57,6 +64,31 @@ def _lang_options(selected="English"):
     return "".join(parts)
 
 
+# ── UX #6: human-friendly error formatter ─────────────────────────────────────
+def _fmt_error(raw: str) -> str:
+    """Turn a raw exception string into a readable, actionable message."""
+    if not raw:
+        return "An unknown error occurred. Please try again."
+    low = raw.lower()
+    if "429" in raw or "quota" in low or "resource_exhausted" in low:
+        return (
+            "⚠ API quota reached. Your free-tier limit has been used up. "
+            "Go to Account → API Keys and add a paid key, or wait for your quota to reset."
+        )
+    if "401" in raw or "403" in raw or "invalid_api_key" in low or "api key" in low:
+        return (
+            "🔑 Invalid or missing API key. "
+            "Go to Account → API Keys and paste a valid key."
+        )
+    if "timeout" in low or "connection" in low:
+        return "🌐 Network timeout. Check your connection and try again."
+    if "json" in low or "parse" in low:
+        return "🤖 The AI returned an unexpected response. Try regenerating."
+    # Return the raw message but clean it up — strip JSON noise
+    clean = raw.split("\n")[0][:300]
+    return clean
+
+
 # ── Generate form ──────────────────────────────────────────────────────────────
 @router.get("/generate", response_class=HTMLResponse)
 async def generate_page(request: Request, msg: str = "",
@@ -67,14 +99,26 @@ async def generate_page(request: Request, msg: str = "",
     if not user:
         return RedirectResponse("/login", status_code=303)
 
-    lang, _ = _get_lang_and_settings(user)
-    brand   = get_default_brand(user["id"])
-    bc      = brand["profile"].get("brand_color", "#4f8ef7") if brand else "#4f8ef7"
-    bv      = brand["profile"].get("brand_voice", "")        if brand else ""
+    lang, settings = _get_lang_and_settings(user)
+    brand          = get_default_brand(user["id"])
+    bc  = brand["profile"].get("brand_color", "#4f8ef7") if brand else "#4f8ef7"
+    bv  = brand["profile"].get("brand_voice", "")        if brand else ""
 
     prefill_topic = topic.strip()
-    prefill_ct    = content_type if content_type in ("static","video") else "static"
+    prefill_ct    = content_type if content_type in ("static", "video") else "static"
     prefill_plat  = platform.strip()
+
+    # ── UX #7: show saved provider / model ────────────────────────────────────
+    saved_provider = settings.get("llm_provider", "google")
+    saved_model    = settings.get("llm_model", "gemini-2.5-flash")
+    provider_label = PROVIDER_LABELS.get(saved_provider, saved_provider.title())
+    provider_info  = (
+        f'<div class="alert alert-info" style="font-size:12px;padding:8px 12px;">'
+        f'Using <strong>{escape_html(provider_label)}</strong> · '
+        f'<span style="font-family:var(--mono);">{escape_html(saved_model)}</span> '
+        f'· <a href="/account" style="color:var(--blue);">Change in Account</a>'
+        f'</div>'
+    )
 
     from_cal_banner = ""
     if from_calendar and prefill_topic:
@@ -119,7 +163,7 @@ async def generate_page(request: Request, msg: str = "",
         '<div class="card">'
         '<div class="card-title">Strategy</div>'
         '<div class="form-group">'
-        '<label class="form-label">' + escape_html(_t(lang, "gen.type_static")) + " / " + escape_html(_t(lang, "gen.type_video")) + "</label>"
+        '<label class="form-label">Static Post / Video</label>'
         '<div style="display:flex;gap:10px;">'
         '<label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:1px solid var(--accent);border-radius:var(--r2);cursor:pointer;font-size:13px;" id="lbl-static">'
         '<input type="radio" name="content_type" value="static" ' + ('checked' if prefill_ct != 'video' else '') + ' style="accent-color:var(--accent);"/> Static Post'
@@ -142,6 +186,8 @@ async def generate_page(request: Request, msg: str = "",
         '<label class="form-label">' + escape_html(_t(lang, "gen.language")) + "</label>"
         '<select class="form-select" name="language">' + _lang_options() + "</select>"
         "</div>"
+        # UX #7 — show active provider/model
+        + provider_info +
         "</div>"
         "</div>"  # end left col
 
@@ -178,8 +224,8 @@ async def generate_page(request: Request, msg: str = "",
         '<option value="16:9">16:9 - Landscape</option>'
         "</select></div>"
         '<div class="form-group">'
-        '<label class="form-label">LLM API Key <span style="font-weight:400;color:var(--text3);">(optional)</span></label>'
-        '<input class="form-input" type="password" name="llm_api_key" placeholder="Leave blank to use account key"/>'
+        '<label class="form-label">Override API Key <span style="font-weight:400;color:var(--text3);">(optional)</span></label>'
+        '<input class="form-input" type="password" name="llm_api_key" placeholder="Leave blank to use your saved key"/>'
         "</div>"
         '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">'
         '<input type="checkbox" name="human_review" value="1" style="accent-color:var(--accent);width:15px;height:15px;"/>'
@@ -229,8 +275,13 @@ async def generate_post(request: Request, background_tasks: BackgroundTasks,
     topic = topic.strip()
     if not topic:
         return RedirectResponse("/generate?msg=Topic+required", status_code=303)
+
+    # ── Fix #4: quota_ok_atomic now reserves atomically ────────────────────
     if not quota_ok_atomic(user):
-        return RedirectResponse("/generate?msg=Quota+exceeded+-+upgrade+your+plan", status_code=303)
+        return RedirectResponse(
+            "/generate?msg=Quota+exceeded+—+upgrade+your+plan+at+%2Fpricing",
+            status_code=303
+        )
 
     form      = await request.form()
     platforms = list(form.getlist("platforms")) or ["Instagram"]
@@ -248,12 +299,16 @@ async def generate_post(request: Request, background_tasks: BackgroundTasks,
     comp_urls = [u.strip() for u in competitor_urls.splitlines() if u.strip().startswith("http")]
 
     import os
-    llm_provider = settings.get("llm_provider", "google")
-    if llm_provider == "openrouter":
-        default_llm_key = settings.get("openrouter_key", "") or os.getenv("OPENROUTER_API_KEY", "")
+    # Resolve key: form override → saved account key → env fallback
+    provider = settings.get("llm_provider", "google")
+    if provider == "openrouter":
+        env_key = os.getenv("OPENROUTER_API_KEY", "")
+        saved_key = settings.get("openrouter_key", "")
     else:
-        default_llm_key = settings.get("gemini_key", "") or os.getenv("GEMINI_API_KEY", "")
-    resolved_llm_key   = llm_api_key.strip() or default_llm_key
+        env_key = os.getenv("GEMINI_API_KEY", "")
+        saved_key = settings.get("gemini_key", "")
+
+    resolved_llm_key   = llm_api_key.strip() or saved_key or env_key
     resolved_img_key   = settings.get("gemini_key", "")  or os.getenv("GEMINI_API_KEY", "")
     resolved_video_key = settings.get("aiml_key", "")    or os.getenv("AIML_API_KEY", "")
 
@@ -270,7 +325,7 @@ async def generate_post(request: Request, background_tasks: BackgroundTasks,
         "product_features": features,
         "competitor_urls":  comp_urls,
         "brand_profile":    merged_bp,
-        "llm_provider":     llm_provider,
+        "llm_provider":     provider,
         "llm_model":        settings.get("llm_model", "gemini-2.5-flash"),
         "image_model":      settings.get("image_model", "gemini-3.1-flash-image-preview"),
         "video_model":      settings.get("video_model", "google/veo-3.1-i2v"),
@@ -301,37 +356,60 @@ async def result_page(request: Request, gid: str):
     # Still running
     if status in ("pending", "running", "generating_media"):
         spin_msgs = {
-            "pending":          "Queued - starting pipeline...",
-            "running":          "AI agents working - scraping trends, analyzing competitors...",
-            "generating_media": "Generating media - creating visuals...",
+            "pending":          "Queued — starting pipeline…",
+            "running":          "AI agents working — scraping trends, analysing competitors…",
+            "generating_media": "Generating media — creating visuals…",
         }
-        spin_msg = spin_msgs.get(status, "Processing...")
+        spin_msg = spin_msgs.get(status, "Processing…")
         content = (
             '<div class="topbar"><div>'
-            '<div class="topbar-title">Generating...</div>'
+            '<div class="topbar-title">Generating…</div>'
             '<div class="topbar-sub">' + escape_html(gen["topic"][:60]) + "</div>"
-            "</div></div>"
+            "</div>"
+            # UX: cancel button while pending
+            '<form method="post" action="/api/cancel-generation/' + gid + '" style="display:inline;">'
+            '<button class="btn btn-ghost btn-sm" type="submit" '
+            'onclick="return confirm(\'Cancel this generation?\')">✕ Cancel</button>'
+            "</form>"
+            "</div>"
             '<div class="content" style="display:flex;align-items:center;justify-content:center;min-height:60vh;">'
             '<div style="text-align:center;">'
             '<div class="spinner" style="width:48px;height:48px;border-width:3px;margin:0 auto 24px;"></div>'
             '<div style="font-size:15px;font-weight:600;margin-bottom:8px;">' + escape_html(spin_msg) + "</div>"
-            '<div style="font-family:var(--mono);font-size:11px;color:var(--text3);">' + gid[:16] + "...</div>"
+            '<div style="font-family:var(--mono);font-size:11px;color:var(--text3);">' + gid[:16] + "…</div>"
             '<div style="margin-top:24px;"><a class="btn btn-ghost btn-sm" href="/history">&larr; History</a></div>'
             "</div></div>"
             "<script>setTimeout(function(){location.replace(location.href);}, 3000);</script>"
         )
-        return HTMLResponse(ui._page(content, user, "Generating...", "generate", lang))
+        return HTMLResponse(ui._page(content, user, "Generating…", "generate", lang))
 
-    # Failed
+    # ── UX #6: Failed — show the real error, formatted nicely ─────────────────
     if status == "failed":
-        err = escape_html((gen.get("error") or "Unknown error")[:300])
+        raw_err = gen.get("error") or ""
+        friendly = _fmt_error(raw_err)
+        # Show raw detail in a collapsible for power users
+        raw_detail = ""
+        if raw_err and raw_err != friendly:
+            raw_detail = (
+                '<details style="margin-top:12px;">'
+                '<summary style="cursor:pointer;font-size:11px;color:var(--text3);">Technical detail</summary>'
+                '<pre style="font-size:11px;font-family:var(--mono);color:var(--text3);'
+                'white-space:pre-wrap;margin-top:8px;padding:10px;background:var(--surface2);'
+                'border-radius:var(--r2);overflow-x:auto;">'
+                + escape_html(raw_err[:600]) +
+                "</pre></details>"
+            )
         content = (
             '<div class="topbar"><div><div class="topbar-title">Generation Failed</div></div>'
             '<a class="btn btn-ghost" href="/generate">&larr; Try again</a></div>'
             '<div class="content">'
-            '<div class="alert alert-danger">Failed: ' + err + "</div>"
-            '<div style="text-align:center;margin-top:40px;">'
+            '<div class="alert alert-danger">'
+            + escape_html(friendly) +
+            raw_detail +
+            "</div>"
+            '<div style="display:flex;gap:10px;margin-top:20px;">'
             '<a class="btn btn-primary" href="/generate">New Generation</a>'
+            '<a class="btn btn-ghost btn-sm" href="/account">Check API Keys</a>'
             "</div></div>"
         )
         return HTMLResponse(ui._page(content, user, "Failed", "generate", lang))
@@ -344,20 +422,20 @@ async def result_page(request: Request, gid: str):
         n          = len(ideas)
         gid_js     = escape_js(gid)
         content = (
-            "<div class=\"topbar\">"
-            "<div><div class=\"topbar-title\">Review Ideas</div>"
-            "<div class=\"topbar-sub\">" + escape_html(gen["topic"][:60]) + "</div></div>"
-            "<div class=\"flex gap-2\">"
-            "<a class=\"btn btn-ghost\" href=\"/generate\">&larr; New</a>"
-            "<button class=\"btn btn-primary\" onclick=\"approveAllIndividual('" + gid_js + "'," + str(n) + ")\">"
+            '<div class="topbar">'
+            '<div><div class="topbar-title">Review Ideas</div>'
+            '<div class="topbar-sub">' + escape_html(gen["topic"][:60]) + "</div></div>"
+            '<div class="flex gap-2">'
+            '<a class="btn btn-ghost" href="/generate">&larr; New</a>'
+            '<button class="btn btn-primary" onclick="approveAllIndividual(\'' + gid_js + "'," + str(n) + ')">'
             "Approve All (" + str(n) + ")"
             "</button>"
             "</div></div>"
-            "<div class=\"content\">" + ideas_html + "</div>"
+            '<div class="content">' + ideas_html + "</div>"
         )
         return HTMLResponse(ui._page(content, user, "Review Ideas", "generate", lang))
 
-    # Completed / partial
+    # Completed / partial — with UX #5 media status badges injected via _build_ideas_html
     result     = gen.get("result") or {}
     ideas_html = ui._build_ideas_html(gen)
     comp_html  = ui._build_competitor_report_html(result, gid)
@@ -376,16 +454,52 @@ async def result_page(request: Request, gid: str):
             + warnings
         )
 
+    # ── UX #5: show per-idea media summary banner ──────────────────────────────
+    results_list = result.get("results", [])
+    if results_list:
+        done    = sum(1 for r in results_list if isinstance(r, dict) and r.get("status") == "completed")
+        partial = sum(1 for r in results_list if isinstance(r, dict) and r.get("status") == "partial")
+        failed  = sum(1 for r in results_list if isinstance(r, dict) and r.get("status") not in ("completed", "partial"))
+        total   = len(results_list)
+
+        parts = []
+        if done:    parts.append(f'<span class="badge badge-green">✓ {done} image{"s" if done!=1 else ""} generated</span>')
+        if partial: parts.append(f'<span class="badge badge-amber">⚠ {partial} partial</span>')
+        if failed:  parts.append(f'<span class="badge badge-red">✕ {failed} failed</span>')
+
+        # Show any failed image errors inline
+        fail_details = ""
+        for r in results_list:
+            if isinstance(r, dict) and r.get("status") not in ("completed",) and r.get("error"):
+                idx = r.get("idea_index", "?")
+                fail_details += (
+                    f'<div style="font-size:11px;color:var(--red);margin-top:4px;">'
+                    f'Idea {int(idx)+1 if str(idx).isdigit() else idx}: {escape_html(_fmt_error(r["error"]))}'
+                    f'</div>'
+                )
+
+        if parts:
+            media_banner = (
+                '<div class="card mb-4" style="padding:12px 16px;">'
+                '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+                '<span style="font-size:12px;font-weight:600;color:var(--text2);">Media:</span>'
+                + " ".join(parts) +
+                "</div>"
+                + fail_details +
+                "</div>"
+            )
+            warnings = media_banner + warnings
+
     plats = ", ".join(gen.get("platforms") or [])
     content = (
-        "<div class=\"topbar\">"
-        "<div><div class=\"topbar-title\">" + escape_html(gen["topic"][:50]) + "</div>"
-        "<div class=\"topbar-sub\">" + escape_html(plats[:60]) + " - " + escape_html(gen["content_type"]) + " - " + escape_html(gen["language"]) + "</div></div>"
-        "<div class=\"flex gap-2\">"
-        "<a class=\"btn btn-ghost\" href=\"/generate\">&larr; New</a>"
-        "<a class=\"btn btn-ghost btn-sm\" href=\"/history\">History</a>"
+        '<div class="topbar">'
+        '<div><div class="topbar-title">' + escape_html(gen["topic"][:50]) + "</div>"
+        '<div class="topbar-sub">' + escape_html(plats[:60]) + " · " + escape_html(gen["content_type"]) + " · " + escape_html(gen["language"]) + "</div></div>"
+        '<div class="flex gap-2">'
+        '<a class="btn btn-ghost" href="/generate">&larr; New</a>'
+        '<a class="btn btn-ghost btn-sm" href="/history">History</a>'
         "</div></div>"
-        "<div class=\"content\">"
+        '<div class="content">'
         + warnings + comp_html + ideas_html +
         "</div>"
     )
@@ -434,14 +548,14 @@ async def history_page(request: Request):
         )
 
     content = (
-        "<div class=\"topbar\">"
-        "<div><div class=\"topbar-title\">" + escape_html(_t(lang, "hist.title")) +
-        " <span style=\"font-family:var(--mono);font-size:13px;color:var(--text3);\">(" + str(len(gens)) + ")</span></div></div>"
-        "<a class=\"btn btn-primary\" href=\"/generate\">" + escape_html(_t(lang, "action.generate")) + "</a>"
+        '<div class="topbar">'
+        '<div><div class="topbar-title">' + escape_html(_t(lang, "hist.title")) +
+        ' <span style="font-family:var(--mono);font-size:13px;color:var(--text3);">(' + str(len(gens)) + ")</span></div></div>"
+        '<a class="btn btn-primary" href="/generate">' + escape_html(_t(lang, "action.generate")) + "</a>"
         "</div>"
-        "<div class=\"content\">"
-        "<div class=\"table-wrap\">"
-        "<table class=\"hist-table\"><thead><tr>"
+        '<div class="content">'
+        '<div class="table-wrap">'
+        '<table class="hist-table"><thead><tr>'
         "<th>" + escape_html(_t(lang, "hist.topic")) + "</th>"
         "<th>" + escape_html(_t(lang, "hist.type")) + "</th>"
         "<th>" + escape_html(_t(lang, "gen.platforms")) + "</th>"

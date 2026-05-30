@@ -835,3 +835,99 @@ def get_all_system_settings():
     with get_conn() as conn:
         rows = conn.execute("SELECT * FROM system_settings ORDER BY key").fetchall()
     return [dict(r) for r in rows]
+
+
+
+def quota_ok_atomic(user) -> bool:
+    """
+    Atomically claim one quota slot for this user in the current month.
+
+    Returns True  — slot reserved, generation may proceed.
+    Returns False — quota exhausted, caller must reject.
+
+    Inserts a placeholder usage row with gen_id='__reserved__'.
+    The caller MUST later call either:
+      - record_usage(uid, real_gid)        on success
+      - release_quota_reservation(uid)     on failure/cancel
+    """
+    uid   = user["id"]
+    plan  = user.get("plan", "free")
+    limit = PLAN_QUOTAS.get(plan, 10)
+    month = current_month()
+
+    with get_conn() as conn:
+        used = conn.execute(
+            "SELECT COUNT(*) FROM usage WHERE user_id=? AND month=?",
+            (uid, month)
+        ).fetchone()[0]
+
+        if used >= limit:
+            return False
+
+        try:
+            conn.execute(
+                "INSERT INTO usage (id, user_id, gen_id, month, created_at) "
+                "VALUES (?, ?, '__reserved__', ?, ?)",
+                (str(_uuid.uuid4()), uid, month, now_iso())
+            )
+            return True
+        except Exception:
+            # Concurrent write filled the last slot between our COUNT and INSERT
+            return False
+
+
+def release_quota_reservation(uid: str):
+    """
+    Return a reserved slot to the pool.
+
+    Call this when a generation fails or is cancelled BEFORE it completes,
+    so the user's quota is not consumed for work that never finished.
+
+    Deletes the oldest '__reserved__' row for this user this month.
+    Safe to call even if no reservation exists (no-op).
+    """
+    month = current_month()
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT id FROM usage "
+            "WHERE user_id=? AND month=? AND gen_id='__reserved__' "
+            "ORDER BY created_at ASC LIMIT 1",
+            (uid, month)
+        ).fetchone()
+        if row:
+            conn.execute("DELETE FROM usage WHERE id=?", (row["id"],))
+
+
+def record_usage(uid: str, gid: str):
+    """
+    Confirm a quota slot was used for a completed generation.
+
+    Upgrades the oldest '__reserved__' placeholder row to the real gen_id.
+    Falls back to inserting a fresh row if no placeholder exists
+    (handles the legacy path where quota_ok_atomic wasn't used).
+
+    Called by update_generation() when status → 'completed'.
+    """
+    month = current_month()
+    with get_conn() as conn:
+        # Try to upgrade an existing reservation
+        conn.execute(
+            "UPDATE usage SET gen_id=? "
+            "WHERE id = ("
+            "  SELECT id FROM usage "
+            "  WHERE user_id=? AND month=? AND gen_id='__reserved__' "
+            "  ORDER BY created_at ASC LIMIT 1"
+            ")",
+            (gid, uid, month)
+        )
+        # If nothing upgraded (no reservation), insert a fresh confirmed row
+        already = conn.execute(
+            "SELECT COUNT(*) FROM usage WHERE user_id=? AND gen_id=?",
+            (uid, gid)
+        ).fetchone()[0]
+        if not already:
+            conn.execute(
+                "INSERT INTO usage (id, user_id, gen_id, month, created_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (str(_uuid.uuid4()), uid, gid, month, now_iso())
+            )
